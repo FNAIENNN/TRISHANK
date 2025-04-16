@@ -1,0 +1,155 @@
+import os
+import zipfile
+from flask import Flask, send_file
+
+# Define project structure
+project_name = "deepseek_safety_app"
+os.makedirs(f"{project_name}/templates", exist_ok=True)
+
+# HTML content (from canvas document)
+html_content = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeepSeek Safety App</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
+    header { background: #004080; color: white; padding: 1rem; text-align: center; }
+    section { padding: 1rem 2rem; }
+    h2 { color: #004080; }
+    .card { background: white; padding: 1rem; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 1rem; }
+    button { padding: 0.5rem 1rem; background: #004080; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #0066cc; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>DeepSeek Safety Dashboard</h1>
+  </header>
+  <section>
+    <div class="card">
+      <h2>1. Profile Setup</h2>
+      <p><strong>User:</strong> <input id="username" type="text" placeholder="Name" /></p>
+      <p><strong>Role:</strong> <select id="userrole"><option>Worker</option><option>Supervisor</option></select></p>
+      <button onclick="saveProfile()">Save Profile</button>
+    </div>
+    <div class="card">
+      <h2>2. Home Dashboard</h2>
+      <p>Daily Safety Score: <span id="safetyScore">92%</span></p>
+      <p><button onclick="alert('Weather alert checked')">Check Weather Alerts</button></p>
+    </div>
+    <div class="card">
+      <h2>3. Precaution Management</h2>
+      <button onclick="submitChecklist()">Submit Safety Checklist</button>
+    </div>
+    <div class="card">
+      <h2>4. Rewards & Gamification</h2>
+      <p>Points: <span>120</span> | Badges: <span>3</span></p>
+    </div>
+    <div class="card">
+      <h2>5. AI Safety Features</h2>
+      <p><button onclick="analyzeHazard()">Upload Hazard Photo</button></p>
+    </div>
+    <div class="card">
+      <h2>6. Smart Scheduling</h2>
+      <button onclick="suggestBreak()">Suggest Break</button>
+    </div>
+    <div class="card">
+      <h2>7. Focus & Well-Being</h2>
+      <p><button onclick="alert('Take a 2-min stretch break!')">Start Stretch Break</button></p>
+    </div>
+  </section>
+  <script>
+    async function saveProfile() {
+      const name = document.getElementById("username").value;
+      const role = document.getElementById("userrole").value;
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("role", role);
+      const response = await fetch("/save_profile", { method: "POST", body: formData });
+      const data = await response.json();
+      alert(data.message);
+    }
+    async function submitChecklist() {
+      const response = await fetch("/submit_checklist", { method: "POST" });
+      const data = await response.json();
+      alert(data.message);
+    }
+    async function analyzeHazard() {
+      const response = await fetch("/analyze_hazard", { method: "POST" });
+      const data = await response.json();
+      alert(data.message);
+    }
+    async function suggestBreak() {
+      const response = await fetch("/suggest_break");
+      const data = await response.json();
+      alert(data.message);
+    }
+  </script>
+</body>
+</html>'''
+
+# Flask backend code with download route
+backend_code = '''from flask import Flask, render_template, request, jsonify, send_file
+import os
+
+app = Flask(__name__)
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+@app.route("/save_profile", methods=["POST"])
+def save_profile():
+    name = request.form.get("name")
+    role = request.form.get("role")
+    return jsonify({"message": f"Profile saved for {name} ({role})"})
+
+@app.route("/submit_checklist", methods=["POST"])
+def submit_checklist():
+    return jsonify({"message": "Safety checklist submitted successfully!"})
+
+@app.route("/analyze_hazard", methods=["POST"])
+def analyze_hazard():
+    return jsonify({"message": "Hazard image analyzed by AI (placeholder)."})
+
+@app.route("/suggest_break", methods=["GET"])
+def suggest_break():
+    return jsonify({"message": "Recommended break based on schedule: 15 mins."})
+
+@app.route("/download_zip")
+def download_zip():
+    zip_path = os.path.join("output_zip", "deepseek_safety_app.zip")
+    return send_file(zip_path, as_attachment=True)
+
+if __name__ == "__main__":
+    app.run(debug=True)
+'''
+
+# Requirements
+requirements = "flask\n"
+
+# Write files
+with open(f"{project_name}/app.py", "w") as f:
+    f.write(backend_code)
+
+with open(f"{project_name}/templates/index.html", "w") as f:
+    f.write(html_content)
+
+with open(f"{project_name}/requirements.txt", "w") as f:
+    f.write(requirements)
+
+# Ensure output directory exists
+output_dir = "output_zip"
+os.makedirs(output_dir, exist_ok=True)
+zip_path = os.path.join(output_dir, "deepseek_safety_app.zip")
+
+# Zip the folder
+with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+    for root, dirs, files in os.walk(project_name):
+        for file in files:
+            full_path = os.path.join(root, file)
+            zipf.write(full_path, os.path.relpath(full_path, project_name))
+
+zip_path
